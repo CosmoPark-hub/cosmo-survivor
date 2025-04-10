@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cosmo Survivor</title>
+    <style>
+        body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { border: 1px solid #fff; }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <!-- Подключаем rexVirtualJoystick локально -->
+    <script src="rexvirtualjoystickplugin.js" onerror="console.error('Не удалось загрузить rexvirtualjoystickplugin.js')"></script>
+    <script src="game.js"></script>
+    <!-- Запускаем игру после загрузки всех скриптов -->
+    <script>
+        window.onload = function() {
+            if (typeof rexvirtualjoystickplugin === 'undefined') {
+                console.error("rexvirtualjoystickplugin не загружен. Проверьте подключение плагина.");
+            } else {
+                console.log("rexvirtualjoystickplugin успешно загружен. Запускаем игру.");
+                startGame();
+            }
+        };
+    </script>
+</body>
+</html>
