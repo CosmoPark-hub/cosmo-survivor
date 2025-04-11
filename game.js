@@ -36,6 +36,9 @@ const config = {
 function startGame() {
     console.log("Запускаем игру...");
     const game = new Phaser.Game(config);
+    window.addEventListener('resize', () => {
+        game.scale.resize(window.innerWidth, window.innerHeight);
+    });
 }
 
 // Глобальные переменные
@@ -320,6 +323,8 @@ function create() {
     this.physics.world.setBounds(0, 0, 800, 3000);
     this.cameras.main.setBounds(0, 0, 800, 3000);
     this.cameras.main.setViewport(0, 0, 800, 600);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setRoundPixels(true);
 
     explosions = this.physics.add.group();
     crystals = this.physics.add.group();
