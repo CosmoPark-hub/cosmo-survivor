@@ -3,19 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <title>Cosmo Survivor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <style>
-        body { margin: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { border: 1px solid #fff; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            max-width: 100%;
+            max-height: 100%;
+        }
     </style>
 </head>
 <body>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
-    <!-- Подключаем rexVirtualJoystick локально -->
     <script src="rexvirtualjoystickplugin.js" onerror="console.error('Не удалось загрузить rexvirtualjoystickplugin.js')"></script>
     <script src="game.js"></script>
-    <!-- Запускаем игру после загрузки всех скриптов -->
     <script>
-        window.onload = function() {
+        window.onload = function () {
             if (typeof rexvirtualjoystickplugin === 'undefined') {
                 console.error("rexvirtualjoystickplugin не загружен. Проверьте подключение плагина.");
             } else {
