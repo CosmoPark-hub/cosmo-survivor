@@ -320,10 +320,9 @@ function preload() {
 
 }
 function create() {
-    this.physics.world.setBounds(0, 0, 800, 3000);
-    this.cameras.main.setBounds(0, 0, 800, 3000);
-    this.cameras.main.setViewport(0, 0, 800, 600);
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.physics.world.setBounds(0, 0, window.innerWidth, window.innerHeight * 5); // Адаптируем мир под высоту экрана
+    this.cameras.main.setBounds(0, 0, window.innerWidth, window.innerHeight * 5);
+    this.cameras.main.setViewport(0, 0, window.innerWidth, window.innerHeight);
     this.cameras.main.setRoundPixels(true);
 
     explosions = this.physics.add.group();
