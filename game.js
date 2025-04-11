@@ -2743,37 +2743,40 @@ function update() {
             }
 
             const camera = this.cameras.main;
+            const cameraWidth = camera.width; // Используем текущую ширину камеры
+            const cameraHeight = camera.height; // Используем текущую высоту камеры
+
             if (bullets && typeof bullets.getChildren === 'function') {
                 bullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
+                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
                         bullet.destroy();
                     }
                 });
             }
             if (fanBullets && typeof fanBullets.getChildren === 'function') {
                 fanBullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
+                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
                         bullet.destroy();
                     }
                 });
             }
             if (orbBullets && typeof orbBullets.getChildren === 'function') {
                 orbBullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
+                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
                         bullet.destroy();
                     }
                 });
             }
             if (missiles && typeof missiles.getChildren === 'function') {
                 missiles.getChildren().forEach(missile => {
-                    if (missile && missile.active && (missile.x < camera.scrollX || missile.x > camera.scrollX + 800 || missile.y < camera.scrollY || missile.y > camera.scrollY + 600)) {
+                    if (missile && missile.active && (missile.x < camera.scrollX || missile.x > camera.scrollX + cameraWidth || missile.y < camera.scrollY || missile.y > camera.scrollY + cameraHeight)) {
                         missile.destroy();
                     }
                 });
             }
             if (mines && typeof mines.getChildren === 'function') {
                 mines.getChildren().forEach(mine => {
-                    if (mine && mine.active && (mine.x < camera.scrollX || mine.x > camera.scrollX + 800 || mine.y < camera.scrollY || mine.y > camera.scrollY + 600)) {
+                    if (mine && mine.active && (mine.x < camera.scrollX || mine.x > camera.scrollX + cameraWidth || mine.y < camera.scrollY || mine.y > camera.scrollY + cameraHeight)) {
                         mine.destroy();
                     }
                 });
