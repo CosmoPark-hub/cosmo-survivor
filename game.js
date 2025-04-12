@@ -320,8 +320,9 @@ function preload() {
 
 }
 function create() {
-    this.physics.world.setBounds(0, 0, window.innerWidth, window.innerHeight * 5); // Адаптируем мир под высоту экрана
-    this.cameras.main.setBounds(0, 0, window.innerWidth, window.innerHeight * 5);
+    const backgroundHeight = 3000; // Фиксированная высота фона
+    this.physics.world.setBounds(0, 0, window.innerWidth, backgroundHeight);
+    this.cameras.main.setBounds(0, 0, window.innerWidth, backgroundHeight);
     this.cameras.main.setViewport(0, 0, window.innerWidth, window.innerHeight);
     this.cameras.main.setRoundPixels(true);
 
@@ -889,6 +890,11 @@ function selectLocation(location) {
 function initializeGameObjects() {
     this.time.removeAllEvents();
 
+    // Сбрасываем счётчики воскрешений
+    resurrectionsAvailable = 1;
+    secondResurrectionUsed = false;
+    console.log("Счётчики воскрешений сброшены: resurrectionsAvailable =", resurrectionsAvailable, "secondResurrectionUsed =", secondResurrectionUsed);
+
     if (player && player.active) player.destroy();
     if (!enemies || !enemies.scene) enemies = this.physics.add.group();
     if (!bullets || !bullets.scene) bullets = this.physics.add.group();
@@ -987,7 +993,6 @@ function initializeGameObjects() {
 
     playerHealth = 10;
     maxHealth = 10;
-    resurrectionsAvailable = 1;
 
     let playerTexture;
     switch (selectedCharacter) {
@@ -1002,10 +1007,22 @@ function initializeGameObjects() {
         case 9: playerTexture = 'player9'; break;
     }
 
-    player = this.physics.add.sprite(400, 1500, playerTexture);
+    // Адаптируем начальную позицию игрока под размеры экрана
+    const startX = window.innerWidth / 2; // Центр по X
+    const startY = 3000 / 2; // Центр по Y (с учётом высоты фона 3000)
+    player = this.physics.add.sprite(startX, startY, playerTexture);
     player.setCollideWorldBounds(true);
 
+    console.log("Игрок создан, collideWorldBounds:", player.body.collideWorldBounds);
+
     this.cameras.main.startFollow(player, true, 0.1, 0.1);
+
+    // Ограничиваем скроллинг камеры, чтобы она не уходила ниже фона (высота фона = 3000)
+    const backgroundHeight = 3000; // Фиксированная высота фона
+    const maxCameraY = backgroundHeight - window.innerHeight; // Нижняя граница фона
+    this.cameras.main.setBounds(0, 0, window.innerWidth, backgroundHeight); // Устанавливаем высоту мира равной высоте фона
+    this.cameras.main.setFollowOffset(0, -window.innerHeight / 4); // Смещаем камеру немного вверх, чтобы игрок был ближе к центру
+    this.cameras.main.scrollY = Math.min(this.cameras.main.scrollY, maxCameraY);
 
     const centerX = this.cameras.main.width / 2;
     const hudHeight = 40; // Высота HUD фиксирована
@@ -1018,46 +1035,48 @@ function initializeGameObjects() {
         .setScrollFactor(0);
 
     // Текст и иконки HUD
-    scoreText = this.add.text(hudPadding, hudHeight / 2, `Score: ${killCount * 10} | Player Level: ${playerLevel}`, { fontSize: '16px', color: '#fff' })
+        scoreText = this.add.text(hudPadding, hudHeight / 2, `Score: ${killCount * 10} | Player Level: ${playerLevel}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-    killText = this.add.text(centerX - 50, hudHeight / 2, `Kills: ${killCount}`, { fontSize: '16px', color: '#fff' })
+        killText = this.add.text(centerX - 50, hudHeight / 2, `Kills: ${killCount}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
         .setOrigin(0.5, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-    const heartIcon = this.add.image(centerX + 50, hudHeight / 2, 'heart')
+        const heartIcon = this.add.image(centerX + 50, hudHeight / 2, 'heart')
         .setOrigin(0, 0.5)
         .setDisplaySize(20, 20)
         .setScrollFactor(0)
         .setDepth(11);
-    healthText = this.add.text(centerX + 70, hudHeight / 2, `${playerHealth}/${maxHealth}`, { fontSize: '16px', color: '#fff' })
+        healthText = this.add.text(centerX + 70, hudHeight / 2, `${playerHealth}/${maxHealth}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-    crystalIcon = this.add.image(this.cameras.main.width - 50, hudHeight / 2, 'crystal')
+        // Смещаем счётчик кристаллов ближе к счётчику здоровья
+        const crystalIconX = centerX + 130; // Смещаем на 60 пикселей вправо от healthText (centerX + 70 + 60)
+        crystalIcon = this.add.image(crystalIconX, hudHeight / 2, 'crystal')
         .setOrigin(0, 0.5)
         .setDisplaySize(20, 20)
         .setScrollFactor(0)
         .setDepth(11);
-    crystalText = this.add.text(this.cameras.main.width - 30, hudHeight / 2, `${crystalCount}`, { fontSize: '16px', color: '#fff' })
+        crystalText = this.add.text(crystalIconX + 20, hudHeight / 2, `${crystalCount}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-    // Кнопка паузы
-    pauseButton = this.add.text(this.cameras.main.width - hudPadding, hudHeight / 2, 'Pause', { fontSize: '16px', color: '#fff' })
+        // Кнопка паузы
+        pauseButton = this.add.text(this.cameras.main.width - hudPadding, hudHeight / 2, 'PAUSE', { fontSize: '20px', fontFamily: 'Arial', fontStyle: 'bold', color: '#fff' }) // Делаем жирным шрифтом
         .setOrigin(1, 0.5)
         .setScrollFactor(0)
         .setDepth(11)
         .setInteractive();
 
-    pauseButton.on('pointerdown', () => {
+        pauseButton.on('pointerdown', () => {
         togglePause.call(this);
-    });
+        });
 
     scoreText.setDepth(11);
     killText.setDepth(11);
@@ -1068,6 +1087,8 @@ function initializeGameObjects() {
     scoreText.setText(`Score: ${killCount * 10} | Player Level: ${playerLevel}`);
     healthText.setText(`${playerHealth}/${maxHealth}`);
     crystalText.setText(`${crystalCount}`);
+
+    console.log("Инициализация оружий для персонажа:", selectedCharacter, "unlockedWeapons:", unlockedWeapons);
 
     switch (selectedCharacter) {
         case 1: unlockedWeapons = ['bullet']; break;
@@ -1087,33 +1108,43 @@ function initializeGameObjects() {
         bulletDelay *= Math.pow(0.8, reductionSteps); // Уменьшаем задержку на 20% каждые 3 уровня
         bulletDelay = Math.max(bulletDelay, 100); // Минимальная задержка 100 мс
         this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для bullet с задержкой:", bulletDelay);
     }
     if (unlockedWeapons.includes('fanBullet')) {
         fanEvent = this.time.addEvent({ delay: 2000, callback: shootFanBullets, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для fanBullet");
     }
     if (unlockedWeapons.includes('orbBullet')) {
         orbEvent = this.time.addEvent({ delay: 1500, callback: shootOrbBullets, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для orbBullet");
     }
     if (unlockedWeapons.includes('missile')) {
         missileEvent = this.time.addEvent({ delay: 1000, callback: shootMissile, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для missile");
     }
     if (unlockedWeapons.includes('mine')) {
         mineEvent = this.time.addEvent({ delay: 1000, callback: dropMine, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для mine");
     }
     if (unlockedWeapons.includes('defenderOrb')) {
         defenderOrbEvent = this.time.addEvent({ delay: 2000, callback: spawnDefenderOrb, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для defenderOrb");
     }
     if (unlockedWeapons.includes('shield')) {
         shieldEvent = this.time.addEvent({ delay: 4000, callback: spawnShield, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для shield");
     }
     if (unlockedWeapons.includes('lightsaber')) {
         lightsaberEvent = this.time.addEvent({ delay: 1500, callback: spawnLightsaber, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для lightsaber");
     }
     if (unlockedWeapons.includes('plasmaOrb')) {
         plasmaOrbEvent = this.time.addEvent({ delay: 1500, callback: shootPlasmaOrb, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для plasmaOrb");
     }
     if (unlockedWeapons.includes('explosion')) {
         explosionEvent = this.time.addEvent({ delay: 1000, callback: triggerExplosions, callbackScope: this, loop: true });
+        console.log("Добавлен таймер для explosion");
     }
 
     // Сохраняем таймер спавна врагов
@@ -1973,11 +2004,17 @@ function gameOverHandler() {
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
+    // Добавляем полупрозрачную подложку
+    const gameOverOverlay = this.add.rectangle(centerX, centerY, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7)
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(99);
+
     gameOverText = this.add.text(centerX, centerY - 50, 'GAME OVER', { fontSize: '48px', color: '#ff0000' })
         .setOrigin(0.5)
         .setScrollFactor(0)
         .setDepth(100);
-    gameOverMenuButton = this.add.text(centerX, centerY + 150, 'TO MENU', { fontSize: '24px', color: '#fff', align: 'center' })
+    gameOverMenuButton = this.add.text(centerX, centerY + 100, 'TO MENU', { fontSize: '24px', color: '#fff', align: 'center' })
         .setOrigin(0.5)
         .setDepth(100)
         .setInteractive()
@@ -1985,14 +2022,14 @@ function gameOverHandler() {
     gameOverMenuButton.on('pointerdown', () => returnToMenu.call(this));
 
     if (resurrectionsAvailable > 0) {
-        resurrectButton = this.add.text(centerX, centerY + 50, 'RESURRECT (FREE)', { fontSize: '24px', color: '#00ff00', align: 'center' })
+        resurrectButton = this.add.text(centerX, centerY + 10, 'RESURRECT (FREE)', { fontSize: '24px', color: '#00ff00', align: 'center' })
             .setOrigin(0.5)
             .setDepth(100)
             .setInteractive()
             .setScrollFactor(0);
         resurrectButton.on('pointerdown', () => resurrectPlayer.call(this));
     } else if (resurrectionsAvailable === 0 && !this.secondResurrectionUsed) {
-        resurrectButton = this.add.text(centerX, centerY + 50, 'RESURRECT (AD)', { fontSize: '24px', color: '#00ff00', align: 'center' })
+        resurrectButton = this.add.text(centerX, centerY + 10, 'RESURRECT (AD)', { fontSize: '24px', color: '#00ff00', align: 'center' })
             .setOrigin(0.5)
             .setDepth(100)
             .setInteractive()
@@ -2007,7 +2044,7 @@ function gameOverHandler() {
             }
         });
     } else {
-        resurrectButton = this.add.text(centerX, centerY + 50, 'RESURRECT (BUY)', { fontSize: '24px', color: '#00ff00', align: 'center' })
+        resurrectButton = this.add.text(centerX, centerY + 10, 'RESURRECT (BUY)', { fontSize: '24px', color: '#00ff00', align: 'center' })
             .setOrigin(0.5)
             .setDepth(100)
             .setInteractive()
@@ -2021,69 +2058,75 @@ function gameOverHandler() {
             }
         });
     }
+
+    // Сохраняем подложку, чтобы уничтожить её при возобновлении игры
+    this.gameOverOverlay = gameOverOverlay;
 }
 
 function resurrectPlayer() {
     if (resurrectionsAvailable > 0) {
         resurrectionsAvailable = 0;
-    } else if (!this.secondResurrectionUsed) {
-        this.secondResurrectionUsed = true;
-    }
-    playerHealth = 5;
-    healthText.setText(`${playerHealth}/${maxHealth}`);
-    gameOver = false;
+        playerHealth = 5;
+        healthText.setText(`${playerHealth}/${maxHealth}`);
+        gameOver = false;
 
-    if (gameOverText) gameOverText.destroy();
-    if (gameOverMenuButton) gameOverMenuButton.destroy();
-    if (resurrectButton) resurrectButton.destroy();
+        if (gameOverText) gameOverText.destroy();
+        if (gameOverMenuButton) gameOverMenuButton.destroy();
+        if (resurrectButton) resurrectButton.destroy();
+        if (this.gameOverOverlay) {
+            this.gameOverOverlay.destroy();
+            this.gameOverOverlay = null;
+        }
 
-    this.physics.resume();
-    if (unlockedWeapons.includes('bullet')) {
-        let bulletDelay = 500;
-        const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3);
-        bulletDelay *= Math.pow(0.8, reductionSteps);
-        bulletDelay = Math.max(bulletDelay, 100);
-        this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
-    }
-    enemySpawnEvent = this.time.addEvent({ delay: enemySpawnDelay, callback: spawnEnemy, callbackScope: this, loop: true });
-    if (unlockedWeapons.includes('fanBullet')) {
-        fanEvent = this.time.addEvent({ delay: 2000, callback: shootFanBullets, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('orbBullet')) {
-        orbEvent = this.time.addEvent({ delay: 1500, callback: shootOrbBullets, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('missile')) {
-        missileEvent = this.time.addEvent({ delay: 1000, callback: shootMissile, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('mine')) {
-        mineEvent = this.time.addEvent({ delay: 1000, callback: dropMine, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('defenderOrb')) {
-        defenderOrbEvent = this.time.addEvent({ delay: 2000, callback: spawnDefenderOrb, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('shield')) {
-        shieldEvent = this.time.addEvent({ delay: 4000, callback: spawnShield, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('lightsaber')) {
-        lightsaberEvent = this.time.addEvent({ delay: 1500, callback: spawnLightsaber, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('plasmaOrb')) {
-        plasmaOrbEvent = this.time.addEvent({ delay: 1500, callback: shootPlasmaOrb, callbackScope: this, loop: true });
-    }
-    if (unlockedWeapons.includes('explosion')) {
-        explosionEvent = this.time.addEvent({ delay: 1000, callback: triggerExplosions, callbackScope: this, loop: true });
-    }
+        this.physics.resume();
+        if (unlockedWeapons.includes('bullet')) {
+            let bulletDelay = 500; // Начальная задержка
+            const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3); // Каждые 3 уровня оружия уменьшаем задержку
+            bulletDelay *= Math.pow(0.8, reductionSteps); // Уменьшаем задержку на 20% каждые 3 уровня
+            bulletDelay = Math.max(bulletDelay, 100); // Минимальная задержка 100 мс
+            this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
+        }
+        // Восстанавливаем таймер спавна врагов
+        enemySpawnEvent = this.time.addEvent({ delay: enemySpawnDelay, callback: spawnEnemy, callbackScope: this, loop: true });
+        if (unlockedWeapons.includes('fanBullet')) {
+            fanEvent = this.time.addEvent({ delay: 2000, callback: shootFanBullets, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('orbBullet')) {
+            orbEvent = this.time.addEvent({ delay: 1500, callback: shootOrbBullets, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('missile')) {
+            missileEvent = this.time.addEvent({ delay: 1000, callback: shootMissile, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('mine')) {
+            mineEvent = this.time.addEvent({ delay: 1000, callback: dropMine, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('defenderOrb')) {
+            defenderOrbEvent = this.time.addEvent({ delay: 2000, callback: spawnDefenderOrb, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('shield')) {
+            shieldEvent = this.time.addEvent({ delay: 4000, callback: spawnShield, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('lightsaber')) {
+            lightsaberEvent = this.time.addEvent({ delay: 1500, callback: spawnLightsaber, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('plasmaOrb')) {
+            plasmaOrbEvent = this.time.addEvent({ delay: 1500, callback: shootPlasmaOrb, callbackScope: this, loop: true });
+        }
+        if (unlockedWeapons.includes('explosion')) {
+            explosionEvent = this.time.addEvent({ delay: 1000, callback: triggerExplosions, callbackScope: this, loop: true });
+        }
 
-    if (gameLocation === 1 && location1Music) location1Music.resume();
-    else if (gameLocation === 2 && location2Music) location2Music.resume();
-    else if (gameLocation === 3 && location3Music) location3Music.resume();
-    else if (gameLocation === 4 && location4Music) location4Music.resume();
-    else if (gameLocation === 5 && location5Music) location5Music.resume();
-    else if (gameLocation === 6 && location6Music) location6Music.resume();
-    else if (gameLocation === 7 && location7Music) location7Music.resume();
-    else if (gameLocation === 8 && location8Music) location8Music.resume();
-    else if (gameLocation === 9 && location9Music) location9Music.resume();
-    else if (gameLocation === 10 && location10Music) location10Music.resume();
+        if (gameLocation === 1 && location1Music) location1Music.resume();
+        else if (gameLocation === 2 && location2Music) location2Music.resume();
+        else if (gameLocation === 3 && location3Music) location3Music.resume();
+        else if (gameLocation === 4 && location4Music) location4Music.resume();
+        else if (gameLocation === 5 && location5Music) location5Music.resume();
+        else if (gameLocation === 6 && location6Music) location6Music.resume();
+        else if (gameLocation === 7 && location7Music) location7Music.resume();
+        else if (gameLocation === 8 && location8Music) location8Music.resume();
+        else if (gameLocation === 9 && location9Music) location9Music.resume();
+        else if (gameLocation === 10 && location10Music) location10Music.resume();
+    }
 }
 
 function resetGameState() {
@@ -2127,11 +2170,19 @@ function returnToMenu() {
         isPaused = false;
         if (pauseText) pauseText.destroy();
         if (menuButtonText) menuButtonText.destroy();
+        if (this.pauseOverlay) {
+            this.pauseOverlay.destroy();
+            this.pauseOverlay = null;
+        }
     }
     if (gameOver) {
         if (gameOverText) gameOverText.destroy();
         if (gameOverMenuButton) gameOverMenuButton.destroy();
         if (resurrectButton) resurrectButton.destroy();
+        if (this.gameOverOverlay) {
+            this.gameOverOverlay.destroy();
+            this.gameOverOverlay = null;
+        }
     }
 
     this.physics.pause();
@@ -2212,7 +2263,7 @@ function returnToMenu() {
 }
 
 function togglePause() {
-    if (!menuActive && levelUpOptions.length === 0) {
+    if (!menuActive && !gameOver && levelUpOptions.length === 0) { // Добавляем проверку !gameOver
         isPaused = !isPaused;
         if (isPaused) {
             this.physics.pause();
@@ -2237,18 +2288,32 @@ function togglePause() {
             else if (gameLocation === 9 && location9Music) location9Music.pause();
             else if (gameLocation === 10 && location10Music) location10Music.pause();
 
-            pauseText = this.add.text(400, 300, 'PAUSE', {
+            const centerX = this.cameras.main.width / 2;
+            const centerY = this.cameras.main.height / 2;
+
+            // Добавляем полупрозрачную подложку
+            const pauseOverlay = this.add.rectangle(centerX, centerY, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7)
+                .setOrigin(0.5)
+                .setScrollFactor(0)
+                .setDepth(99);
+
+            pauseText = this.add.text(centerX, centerY - 20, 'PAUSE', {
                 fontSize: '48px', color: '#fff'
             }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
-            menuButtonText = this.add.text(400, 350, 'TO MENU', {
+
+            menuButtonText = this.add.text(centerX, centerY + 20, 'TO MENU', {
                 fontSize: '24px', color: '#fff', align: 'center'
             }).setOrigin(0.5).setDepth(100).setInteractive().setScrollFactor(0);
+
             menuButtonText.on('pointerdown', () => returnToMenu.call(this));
 
             // Добавляем текст подсказки и сохраняем его в глобальную переменную
-            controlText = this.add.text(400, 400, 'WASD to MOVE. MOUSE to LOOK. SPACE to PAUSE.', {
+            controlText = this.add.text(centerX, centerY + 60, 'WASD to MOVE. MOUSE to LOOK. SPACE to PAUSE.', {
                 fontSize: '16px', color: '#fff', align: 'center'
             }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+
+            // Сохраняем подложку, чтобы уничтожить её при возобновлении игры
+            this.pauseOverlay = pauseOverlay;
         } else {
             this.physics.resume();
             if (fanEvent) fanEvent.paused = false;
@@ -2274,7 +2339,11 @@ function togglePause() {
 
             if (pauseText) pauseText.destroy();
             if (menuButtonText) menuButtonText.destroy();
-            if (controlText) controlText.destroy(); // Уничтожаем текст подсказки
+            if (controlText) controlText.destroy();
+            if (this.pauseOverlay) {
+                this.pauseOverlay.destroy();
+                this.pauseOverlay = null;
+            }
         }
     }
 }
@@ -2325,13 +2394,16 @@ function showLevelUpMenu() {
     if (location9Music) location9Music.pause();
     if (location10Music) location10Music.pause();
 
-    const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.7);
-    overlay.setOrigin(0.5, 0.5);
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+
+    const overlay = this.add.rectangle(centerX, centerY, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7);
+    overlay.setOrigin(0.5);
     overlay.setDepth(200);
     overlay.setScrollFactor(0);
     levelUpMenuElements.push(overlay);
 
-    const title = this.add.text(400, 200, 'Level Up!', { fontSize: '32px', color: '#00ff00', align: 'center' }).setOrigin(0.5).setDepth(201);
+    const title = this.add.text(centerX, centerY - 120, 'Level Up!', { fontSize: '32px', color: '#00ff00', align: 'center' }).setOrigin(0.5).setDepth(201);
     title.setScrollFactor(0);
     levelUpMenuElements.push(title);
 
@@ -2431,26 +2503,26 @@ function showLevelUpMenu() {
     levelUpBorders = [];
     for (let i = 0; i < levelUpOptions.length; i++) {
         const option = levelUpOptions[i];
-        const button = this.add.rectangle(400, 300 + i * 80, 500, 60, 0x555555);
-        button.setOrigin(0.5, 0.5);
+        const button = this.add.rectangle(centerX, centerY + i * 80 - 40, 500, 60, 0x555555);
+        button.setOrigin(0.5);
         button.setDepth(201);
         button.setInteractive();
         button.setScrollFactor(0);
         levelUpMenuElements.push(button);
 
-        const icon = this.add.image(180, 300 + i * 80, option.icon)
-            .setOrigin(0.5, 0.5)
+        const icon = this.add.image(centerX - 220, centerY + i * 80 - 40, option.icon)
+            .setOrigin(0.5)
             .setDisplaySize(40, 40)
             .setDepth(202);
         icon.setScrollFactor(0);
         levelUpMenuElements.push(icon);
 
-        const optionText = this.add.text(400, 300 + i * 80, option.text, { fontSize: '16px', color: '#ffffff', align: 'left' }).setOrigin(0.5).setDepth(202);
+        const optionText = this.add.text(centerX, centerY + i * 80 - 40, option.text, { fontSize: '16px', color: '#ffffff', align: 'left' }).setOrigin(0.5).setDepth(202);
         optionText.setScrollFactor(0);
         levelUpMenuElements.push(optionText);
 
-        const border = this.add.rectangle(400, 300 + i * 80, 500, 60, 0x00ff00, 0);
-        border.setOrigin(0.5, 0.5);
+        const border = this.add.rectangle(centerX, centerY + i * 80 - 40, 500, 60, 0x00ff00, 0);
+        border.setOrigin(0.5);
         border.setStrokeStyle(2, 0x00ff00, 0);
         border.setDepth(203);
         border.setScrollFactor(0);
@@ -2459,12 +2531,11 @@ function showLevelUpMenu() {
         button.on('pointerdown', () => selectLevelUpOption.call(this, i));
     }
 
-    const confirmButton = this.add.text(400, 460, 'Access', { fontSize: '24px', color: '#00ff00', align: 'center' }).setOrigin(0.5).setDepth(201).setInteractive();
+    const confirmButton = this.add.text(centerX, centerY + 100, 'Access', { fontSize: '24px', color: '#00ff00', align: 'center' }).setOrigin(0.5).setDepth(201).setInteractive();
     confirmButton.setScrollFactor(0);
     confirmButton.on('pointerdown', () => applyLevelUpChoice.call(this));
     levelUpMenuElements.push(confirmButton);
 }
-
 function selectLevelUpOption(index) {
     selectedOption = index;
     levelUpBorders.forEach((border, i) => {
@@ -2636,6 +2707,10 @@ function update() {
                 if (cursors && cursors.left && (cursors.left.isDown || wasd.left.isDown)) velocityX -= 200;
                 if (cursors && cursors.right && (cursors.right.isDown || wasd.right.isDown)) velocityX += 200;
                 if (cursors && cursors.up && (cursors.up.isDown || wasd.up.isDown)) velocityY -= 200;
+                const backgroundHeight = 3000; // Фиксированная высота фона
+                if (this.cameras.main.scrollY > backgroundHeight - window.innerHeight && velocityY > 0) {
+                    velocityY = 0; // Запрещаем движение вниз, если камера достигла нижней границы
+                }
                 if (cursors && cursors.down && (cursors.down.isDown || wasd.down.isDown)) velocityY += 200;
 
                 // Управление с джойстика
@@ -2647,12 +2722,19 @@ function update() {
                     if (force > 0) { // Если джойстик активен
                         velocityX = Math.cos(Phaser.Math.DegToRad(angle)) * speed;
                         velocityY = Math.sin(Phaser.Math.DegToRad(angle)) * speed;
+                        if (cameras.main.scrollY > backgroundHeight - window.innerHeight && velocityY > 0) {
+                            velocityY = 0; // Запрещаем движение вниз, если камера достигла нижней границы
+                        }
                     }
                 }
 
                 // Применяем скорость
                 player.body.setVelocityX(velocityX);
                 player.body.setVelocityY(velocityY);
+
+                // Ограничиваем скроллинг камеры
+                const maxCameraY = backgroundHeight - window.innerHeight;
+                this.cameras.main.scrollY = Math.min(this.cameras.main.scrollY, maxCameraY);
 
                 // Обновляем последнее направление движения, если игрок движется
                 if (velocityX !== 0 || velocityY !== 0) {
@@ -2769,7 +2851,7 @@ function update() {
             }
             if (missiles && typeof missiles.getChildren === 'function') {
                 missiles.getChildren().forEach(missile => {
-                    if (missile && missile.active && (missile.x < camera.scrollX || missile.x > camera.scrollX + cameraWidth || missile.y < camera.scrollY || missile.y > camera.scrollY + cameraHeight)) {
+                    if (missile && missile.active && (missile.x < camera.scrollX || missile.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
                         missile.destroy();
                     }
                 });
