@@ -42,7 +42,8 @@ function startGame() {
 }
 
 // Глобальные переменные
-let player, enemies, bullets, fanBullets, orbBullets, missiles, mines, defenderOrbs, shields, rescueShields, lightsabers, plasmaOrbs, explosionsGroup, cursors, wasd, scoreText, killCount = 0, killText, playerHealth = 10, maxHealth = 10, healthText, enemySpawnDelay = 1500, part, parts, level = 1, gameLocation = 1, highestUnlockedLocation = 1, hasBossSpawned = false, fanEvent, orbEvent, missileEvent, mineEvent, defenderOrbEvent, shieldEvent, lightsaberEvent, plasmaOrbEvent, explosionEvent, enemySpawnEvent, isPaused = false, pauseText, menuButtonText, menuActive = true, locationContainer, locationButtons, titleText, menuMusic, location1Music, location2Music, location3Music, location4Music, location5Music, location6Music, location7Music, location8Music, location9Music, location10Music, hudBackground, gameOver = false, gameOverText, gameOverMenuButton, hearts, resurrectionsAvailable = 1, resurrectButton, selectedCharacter = null, characterImages = [], characterBorders = [], explosions, obstacles, playerDirection = 'right', leftArrow, rightArrow, spawnedEnemiesCount = 0, crystalIcon, crystalCountText, resurrectionIcon, joystick, lastMovementDirection = 0, pauseButton;
+// Глобальные переменные
+let player, enemies, bullets, fanBullets, orbBullets, missiles, mines, defenderOrbs, shields, rescueShields, lightsabers, plasmaOrbs, explosionsGroup, cursors, wasd, scoreText, levelText, killCount = 0, killText, playerHealth = 10, maxHealth = 10, healthText, enemySpawnDelay = 1500, part, parts, level = 1, gameLocation = 1, highestUnlockedLocation = 1, hasBossSpawned = false, fanEvent, orbEvent, missileEvent, mineEvent, defenderOrbEvent, shieldEvent, lightsaberEvent, plasmaOrbEvent, explosionEvent, enemySpawnEvent, isPaused = false, pauseText, menuButtonText, menuActive = true, locationContainer, locationButtons, titleText, locationTitle, menuMusic, location1Music, location2Music, location3Music, location4Music, location5Music, location6Music, location7Music, location8Music, location9Music, location10Music, hudBackground, gameOver = false, gameOverText, gameOverMenuButton, hearts, resurrectionsAvailable = 1, resurrectButton, selectedCharacter = null, characterImages = [], characterBorders = [], explosions, obstacles, playerDirection = 'right', leftArrow, rightArrow, spawnedEnemiesCount = 0, crystalIcon, crystalCountText, resurrectionIcon, joystick, lastMovementDirection = 0, pauseButton, backButton, secondResurrectionUsed = false;
 let playerLevel = 1, weaponLevels = { bullet: 1, fanBullet: 1, orbBullet: 1, missile: 1, mine: 1, defenderOrb: 1, shield: 1, lightsaber: 1, plasmaOrb: 1, explosion: 1 }, unlockedWeapons = [], levelUpOptions = [], selectedOption = null, levelUpMenuElements = [], levelUpBorders = [];
 let bossDefeated = Array(10).fill(false);
 let currentCharacterIndex = 0;
@@ -57,7 +58,6 @@ let unlockedCharacters = [true, false, false, false, false, false, false, false,
 let isTransitioning = false;
 let isCollectingPart = false;
 let pendingPart = null;
-let secondResurrectionUsed = false;
 
 function showDamageText(scene, x, y, damage) {
     // Преобразуем мировые координаты в экранные
@@ -525,7 +525,7 @@ function showCharacterMenu() {
 
     updateCharacterSelection();
 
-    const acceptButton = this.add.text(centerX, centerY + 200, 'Accept', { fontSize: '32px', color: '#00ff00', align: 'center' })
+    const acceptButton = this.add.text(centerX, centerY + 300, 'ACCEPT', { fontSize: '32px', color: '#00ff00', align: 'center' })
         .setOrigin(0.5)
         .setDepth(101)
         .setInteractive()
@@ -559,13 +559,15 @@ function showLocationMenu() {
 
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
+    const hudPadding = 10; // Определяем отступ для согласованности
 
     overlay = this.add.image(centerX, centerY, 'menuBackground')
         .setOrigin(0.5, 0.5)
         .setDepth(100)
         .setScrollFactor(0);
 
-    titleText = this.add.text(centerX, centerY - 200, 'CosmoSurvivor', { fontSize: '48px', color: '#fff', align: 'center' })
+    // Добавляем заголовок "Choose Location!" на 200 пикселей выше
+    locationTitle = this.add.text(centerX, centerY - 400, 'Choose Location!', { fontSize: '48px', color: '#fff', align: 'center' })
         .setOrigin(0.5)
         .setDepth(101)
         .setScrollFactor(0);
@@ -662,7 +664,7 @@ function showLocationMenu() {
         );
     });
 
-    acceptButton = this.add.text(centerX, centerY + scrollAreaHeight / 2 + 50, 'Accept', { fontSize: '32px', color: '#00ff00', align: 'center' })
+    acceptButton = this.add.text(centerX, centerY + scrollAreaHeight / 2 + 50, 'ACCEPT', { fontSize: '32px', fontFamily: 'Arial', color: '#00ff00', align: 'center' })
         .setOrigin(0.5)
         .setDepth(101)
         .setInteractive()
@@ -673,6 +675,29 @@ function showLocationMenu() {
         } else {
             console.log('Выберите локацию перед продолжением!');
         }
+    });
+
+    // Добавляем кнопку "Back" в левом нижнем углу
+    backButton = this.add.text(hudPadding, this.cameras.main.height - hudPadding, 'BACK', { fontSize: '32px', fontFamily: 'Arial', color: '#00ff00', align: 'center' })
+        .setOrigin(0, 1) // Привязываем к левому нижнему углу
+        .setDepth(101)
+        .setInteractive()
+        .setScrollFactor(0);
+    backButton.on('pointerdown', () => {
+        // Очищаем элементы текущего меню
+        locationContainer.destroy();
+        locationButtons = [];
+        overlay.destroy();
+        locationTitle.destroy();
+        acceptButton.destroy();
+        if (backButton) {
+            backButton.destroy();
+            backButton = null;
+        }
+        this.input.off('wheel'); // Удаляем обработчик прокрутки
+
+        // Переходим в меню выбора персонажа
+        showCharacterMenu.call(this);
     });
 }
 
@@ -938,6 +963,10 @@ function initializeGameObjects() {
         scoreText.destroy();
         scoreText = null;
     }
+    if (levelText) {
+        levelText.destroy();
+        levelText = null;
+    }
     if (killText) {
         killText.destroy();
         killText = null;
@@ -971,6 +1000,16 @@ function initializeGameObjects() {
     if (pauseButton) {
         pauseButton.destroy();
         pauseButton = null;
+    }
+    if (backButton) {
+        console.log("Дополнительно уничтожаем backButton в initializeGameObjects...");
+        backButton.destroy();
+        backButton = null;
+    }
+    if (locationTitle) { // Добавляем удаление locationTitle
+        console.log("Дополнительно уничтожаем locationTitle в initializeGameObjects...");
+        locationTitle.destroy();
+        locationTitle = null;
     }
 
     gameOver = false;
@@ -1035,56 +1074,65 @@ function initializeGameObjects() {
         .setScrollFactor(0);
 
     // Текст и иконки HUD
-        scoreText = this.add.text(hudPadding, hudHeight / 2, `Score: ${killCount * 10} | Player Level: ${playerLevel}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
+    scoreText = this.add.text(hudPadding, hudHeight / 2, `Score: ${killCount * 10}`, { fontSize: '20px', color: '#fff' })
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-        killText = this.add.text(centerX - 50, hudHeight / 2, `Kills: ${killCount}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
+    // Размещаем levelText сразу после scoreText
+    const scoreTextWidth = scoreText.width; // Ширина текста scoreText
+    levelText = this.add.text(hudPadding + scoreTextWidth + 20, hudHeight / 2, `Level: ${playerLevel}`, { fontSize: '20px', color: '#fff' })
+        .setOrigin(0, 0.5)
+        .setScrollFactor(0)
+        .setDepth(11);
+
+    killText = this.add.text(centerX - 50, hudHeight / 2, `Kills: ${killCount}`, { fontSize: '20px', color: '#fff' })
         .setOrigin(0.5, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-        const heartIcon = this.add.image(centerX + 50, hudHeight / 2, 'heart')
+    const heartIcon = this.add.image(centerX + 50, hudHeight / 2, 'heart')
         .setOrigin(0, 0.5)
         .setDisplaySize(20, 20)
         .setScrollFactor(0)
         .setDepth(11);
-        healthText = this.add.text(centerX + 70, hudHeight / 2, `${playerHealth}/${maxHealth}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
+    healthText = this.add.text(centerX + 70, hudHeight / 2, `${playerHealth}/${maxHealth}`, { fontSize: '20px', color: '#fff' })
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-        // Смещаем счётчик кристаллов ближе к счётчику здоровья
-        const crystalIconX = centerX + 130; // Смещаем на 60 пикселей вправо от healthText (centerX + 70 + 60)
-        crystalIcon = this.add.image(crystalIconX, hudHeight / 2, 'crystal')
+    // Смещаем счётчик кристаллов ближе к счётчику здоровья
+    const crystalIconX = centerX + 130; // Смещаем на 60 пикселей вправо от healthText (centerX + 70 + 60)
+    crystalIcon = this.add.image(crystalIconX, hudHeight / 2, 'crystal')
         .setOrigin(0, 0.5)
         .setDisplaySize(20, 20)
         .setScrollFactor(0)
         .setDepth(11);
-        crystalText = this.add.text(crystalIconX + 20, hudHeight / 2, `${crystalCount}`, { fontSize: '20px', color: '#fff' }) // Увеличиваем шрифт до 20px
+    crystalText = this.add.text(crystalIconX + 20, hudHeight / 2, `${crystalCount}`, { fontSize: '20px', color: '#fff' })
         .setOrigin(0, 0.5)
         .setScrollFactor(0)
         .setDepth(11);
 
-        // Кнопка паузы
-        pauseButton = this.add.text(this.cameras.main.width - hudPadding, hudHeight / 2, 'PAUSE', { fontSize: '20px', fontFamily: 'Arial', fontStyle: 'bold', color: '#fff' }) // Делаем жирным шрифтом
+    // Кнопка паузы
+    pauseButton = this.add.text(this.cameras.main.width - hudPadding, hudHeight / 2, 'PAUSE', { fontSize: '20px', fontFamily: 'Arial', fontStyle: 'bold', color: '#fff' })
         .setOrigin(1, 0.5)
         .setScrollFactor(0)
         .setDepth(11)
         .setInteractive();
 
-        pauseButton.on('pointerdown', () => {
+    pauseButton.on('pointerdown', () => {
         togglePause.call(this);
-        });
+    });
 
     scoreText.setDepth(11);
+    levelText.setDepth(11);
     killText.setDepth(11);
     healthText.setDepth(11);
     crystalText.setDepth(11);
 
     killText.setText(`Kills: ${killCount}`);
-    scoreText.setText(`Score: ${killCount * 10} | Player Level: ${playerLevel}`);
+    scoreText.setText(`Score: ${killCount * 10}`);
+    levelText.setText(`Level: ${playerLevel}`);
     healthText.setText(`${playerHealth}/${maxHealth}`);
     crystalText.setText(`${crystalCount}`);
 
@@ -1899,7 +1947,7 @@ function hitEnemy(weapon, enemy) {
                 enemy.destroy();
                 killCount++;
                 killText.setText(`Kills: ${killCount}`);
-                scoreText.setText(`Score: ${killCount * 10} | Player Level: ${playerLevel}`);
+                scoreText.setText(`Score: ${killCount * 10}`);
             }, this);
         }
 
@@ -1949,7 +1997,7 @@ function hitPlayer(player, enemy) {
                     enemy.destroy();
                     killCount++;
                     killText.setText(`Kills: ${killCount}`);
-                    scoreText.setText(`Score: ${killCount * 10} | Player Level: ${playerLevel}`);
+                    scoreText.setText(`Score: ${killCount * 10}`);
                 });
             }
         }
@@ -2707,10 +2755,6 @@ function update() {
                 if (cursors && cursors.left && (cursors.left.isDown || wasd.left.isDown)) velocityX -= 200;
                 if (cursors && cursors.right && (cursors.right.isDown || wasd.right.isDown)) velocityX += 200;
                 if (cursors && cursors.up && (cursors.up.isDown || wasd.up.isDown)) velocityY -= 200;
-                const backgroundHeight = 3000; // Фиксированная высота фона
-                if (this.cameras.main.scrollY > backgroundHeight - window.innerHeight && velocityY > 0) {
-                    velocityY = 0; // Запрещаем движение вниз, если камера достигла нижней границы
-                }
                 if (cursors && cursors.down && (cursors.down.isDown || wasd.down.isDown)) velocityY += 200;
 
                 // Управление с джойстика
@@ -2722,19 +2766,12 @@ function update() {
                     if (force > 0) { // Если джойстик активен
                         velocityX = Math.cos(Phaser.Math.DegToRad(angle)) * speed;
                         velocityY = Math.sin(Phaser.Math.DegToRad(angle)) * speed;
-                        if (cameras.main.scrollY > backgroundHeight - window.innerHeight && velocityY > 0) {
-                            velocityY = 0; // Запрещаем движение вниз, если камера достигла нижней границы
-                        }
                     }
                 }
 
                 // Применяем скорость
                 player.body.setVelocityX(velocityX);
                 player.body.setVelocityY(velocityY);
-
-                // Ограничиваем скроллинг камеры
-                const maxCameraY = backgroundHeight - window.innerHeight;
-                this.cameras.main.scrollY = Math.min(this.cameras.main.scrollY, maxCameraY);
 
                 // Обновляем последнее направление движения, если игрок движется
                 if (velocityX !== 0 || velocityY !== 0) {
@@ -2825,40 +2862,37 @@ function update() {
             }
 
             const camera = this.cameras.main;
-            const cameraWidth = camera.width; // Используем текущую ширину камеры
-            const cameraHeight = camera.height; // Используем текущую высоту камеры
-
             if (bullets && typeof bullets.getChildren === 'function') {
                 bullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
+                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
                         bullet.destroy();
                     }
                 });
             }
             if (fanBullets && typeof fanBullets.getChildren === 'function') {
                 fanBullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
+                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
                         bullet.destroy();
                     }
                 });
             }
             if (orbBullets && typeof orbBullets.getChildren === 'function') {
                 orbBullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
+                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
                         bullet.destroy();
                     }
                 });
             }
             if (missiles && typeof missiles.getChildren === 'function') {
                 missiles.getChildren().forEach(missile => {
-                    if (missile && missile.active && (missile.x < camera.scrollX || missile.x > camera.scrollX + cameraWidth || bullet.y < camera.scrollY || bullet.y > camera.scrollY + cameraHeight)) {
+                    if (missile && missile.active && (missile.x < camera.scrollX || missile.x > camera.scrollX + 800 || missile.y < camera.scrollY || missile.y > camera.scrollY + 600)) {
                         missile.destroy();
                     }
                 });
             }
             if (mines && typeof mines.getChildren === 'function') {
                 mines.getChildren().forEach(mine => {
-                    if (mine && mine.active && (mine.x < camera.scrollX || mine.x > camera.scrollX + cameraWidth || mine.y < camera.scrollY || mine.y > camera.scrollY + cameraHeight)) {
+                    if (mine && mine.active && (mine.x < camera.scrollX || mine.x > camera.scrollX + 800 || mine.y < camera.scrollY || mine.y > camera.scrollY + 600)) {
                         mine.destroy();
                     }
                 });
@@ -2970,7 +3004,8 @@ function update() {
         // Проверяем, достиг ли игрок необходимого количества убийств для следующего уровня
         if (playerLevel < levelUpKills.length && killCount >= levelUpKills[playerLevel]) {
             playerLevel++;
-            scoreText.setText(`Score: ${killCount * 10}`);
+            scoreText.setText(`Score: ${killCount * 10}`); // Обновляем только счёт
+            levelText.setText(`Level: ${playerLevel}`); // Обновляем уровень
             showLevelUpMenu.call(this);
         }
 
