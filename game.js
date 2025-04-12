@@ -413,13 +413,8 @@ function showIntroScreen() {
         titleText.destroy();
         introText.destroy();
         startButton.destroy();
-        controlsText.destroy(); // Уничтожаем новый текст
         showCharacterMenu.call(this);
     });
-
-    const controlsText = this.add.text(centerX, centerY + 200, 'WASD to MOVE. MOUSE to LOOK. SPACE to PAUSE.', {
-        fontSize: '16px', color: '#fff', align: 'center'
-    }).setOrigin(0.5).setDepth(101).setScrollFactor(0);
 }
 
 function showCharacterMenu() {
@@ -2354,11 +2349,6 @@ function togglePause() {
             }).setOrigin(0.5).setDepth(100).setInteractive().setScrollFactor(0);
 
             menuButtonText.on('pointerdown', () => returnToMenu.call(this));
-
-            // Добавляем текст подсказки и сохраняем его в глобальную переменную
-            controlText = this.add.text(centerX, centerY + 60, 'WASD to MOVE. MOUSE to LOOK. SPACE to PAUSE.', {
-                fontSize: '16px', color: '#fff', align: 'center'
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
 
             // Сохраняем подложку, чтобы уничтожить её при возобновлении игры
             this.pauseOverlay = pauseOverlay;
