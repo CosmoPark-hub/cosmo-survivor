@@ -2739,7 +2739,6 @@ function update() {
             if (player && player.body) {
                 player.body.setVelocity(0);
 
-                // Управление с клавиатуры (WASD или стрелки)
                 let velocityX = 0;
                 let velocityY = 0;
                 if (cursors && cursors.left && (cursors.left.isDown || wasd.left.isDown)) velocityX -= 200;
@@ -2747,41 +2746,33 @@ function update() {
                 if (cursors && cursors.up && (cursors.up.isDown || wasd.up.isDown)) velocityY -= 200;
                 if (cursors && cursors.down && (cursors.down.isDown || wasd.down.isDown)) velocityY += 200;
 
-                // Управление с джойстика
-                if (joystick) {
-                    const speed = 200; // Скорость движения игрока
-                    const force = joystick.force; // Сила нажатия на джойстик
-                    const angle = joystick.angle; // Угол наклона джойстика
-
-                    if (force > 0) { // Если джойстик активен
+                if (joystick && joystick.isDown) {
+                    const speed = 200;
+                    const force = joystick.force;
+                    const angle = joystick.angle;
+                    if (force > 10) {
                         velocityX = Math.cos(Phaser.Math.DegToRad(angle)) * speed;
                         velocityY = Math.sin(Phaser.Math.DegToRad(angle)) * speed;
                     }
                 }
 
-                // Применяем скорость
                 player.body.setVelocityX(velocityX);
                 player.body.setVelocityY(velocityY);
 
-                // Обновляем последнее направление движения, если игрок движется
                 if (velocityX !== 0 || velocityY !== 0) {
                     lastMovementDirection = Phaser.Math.Angle.Between(0, 0, velocityX, velocityY);
                 }
 
-                // Проверяем, активна ли мышь
                 const pointer = this.input.activePointer;
                 let angle;
                 const isMouseActive = pointer.isDown || (pointer.x !== pointer.lastX || pointer.y !== pointer.lastY);
 
                 if (isMouseActive) {
-                    // Если мышь активна, поворачиваем игрока в сторону курсора
                     angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.x + this.cameras.main.scrollX, pointer.y + this.cameras.main.scrollY);
                 } else {
-                    // Если мышь не активна, используем последнее направление движения
                     angle = lastMovementDirection;
                 }
 
-                // Поворот игрока
                 if (angle > -Math.PI / 2 && angle < Math.PI / 2) {
                     player.setFlipX(false);
                     player.setRotation(angle);
@@ -2852,37 +2843,68 @@ function update() {
             }
 
             const camera = this.cameras.main;
+            const buffer = 50; // Буфер за пределами экрана
+
             if (bullets && typeof bullets.getChildren === 'function') {
                 bullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
+                    if (bullet && bullet.active && (
+                        bullet.x < camera.scrollX - buffer ||
+                        bullet.x > camera.scrollX + camera.width + buffer ||
+                        bullet.y < camera.scrollY - buffer ||
+                        bullet.y > camera.scrollY + camera.height + buffer
+                    )) {
                         bullet.destroy();
                     }
                 });
             }
+
             if (fanBullets && typeof fanBullets.getChildren === 'function') {
                 fanBullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
+                    if (bullet && bullet.active && (
+                        bullet.x < camera.scrollX - buffer ||
+                        bullet.x > camera.scrollX + camera.width + buffer ||
+                        bullet.y < camera.scrollY - buffer ||
+                        bullet.y > camera.scrollY + camera.height + buffer
+                    )) {
                         bullet.destroy();
                     }
                 });
             }
+
             if (orbBullets && typeof orbBullets.getChildren === 'function') {
                 orbBullets.getChildren().forEach(bullet => {
-                    if (bullet && bullet.active && (bullet.x < camera.scrollX || bullet.x > camera.scrollX + 800 || bullet.y < camera.scrollY || bullet.y > camera.scrollY + 600)) {
+                    if (bullet && bullet.active && (
+                        bullet.x < camera.scrollX - buffer ||
+                        bullet.x > camera.scrollX + camera.width + buffer ||
+                        bullet.y < camera.scrollY - buffer ||
+                        bullet.y > camera.scrollY + camera.height + buffer
+                    )) {
                         bullet.destroy();
                     }
                 });
             }
+
             if (missiles && typeof missiles.getChildren === 'function') {
                 missiles.getChildren().forEach(missile => {
-                    if (missile && missile.active && (missile.x < camera.scrollX || missile.x > camera.scrollX + 800 || missile.y < camera.scrollY || missile.y > camera.scrollY + 600)) {
+                    if (missile && missile.active && (
+                        missile.x < camera.scrollX - buffer ||
+                        missile.x > camera.scrollX + camera.width + buffer ||
+                        missile.y < camera.scrollY - buffer ||
+                        missile.y > camera.scrollY + camera.height + buffer
+                    )) {
                         missile.destroy();
                     }
                 });
             }
+
             if (mines && typeof mines.getChildren === 'function') {
                 mines.getChildren().forEach(mine => {
-                    if (mine && mine.active && (mine.x < camera.scrollX || mine.x > camera.scrollX + 800 || mine.y < camera.scrollY || mine.y > camera.scrollY + 600)) {
+                    if (mine && mine.active && (
+                        mine.x < camera.scrollX - buffer ||
+                        mine.x > camera.scrollX + camera.width + buffer ||
+                        mine.y < camera.scrollY - buffer ||
+                        mine.y > camera.scrollY + camera.height + buffer
+                    )) {
                         mine.destroy();
                     }
                 });
@@ -2918,11 +2940,9 @@ function update() {
             }
         }
 
-        // Перезапуск таймеров должен происходить независимо от состояния меню прокачки
         if (this.time.now % 10000 < 100 && enemySpawnDelay > 500) {
             enemySpawnDelay -= 100;
 
-            // Сохраняем оставшееся время жизни щита, если он существует
             let remainingShieldTime = null;
             if (shields && typeof shields.getChildren === 'function') {
                 const activeShields = shields.getChildren().filter(shield => shield.active);
@@ -2936,10 +2956,10 @@ function update() {
 
             this.time.removeAllEvents();
             if (unlockedWeapons.includes('bullet')) {
-                let bulletDelay = 500; // Начальная задержка
-                const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3); // Каждые 3 уровня оружия уменьшаем задержку
-                bulletDelay *= Math.pow(0.8, reductionSteps); // Уменьшаем задержку на 20% каждые 3 уровня
-                bulletDelay = Math.max(bulletDelay, 100); // Минимальная задержка 100 мс
+                let bulletDelay = 500;
+                const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3);
+                bulletDelay *= Math.pow(0.8, reductionSteps);
+                bulletDelay = Math.max(bulletDelay, 100);
                 this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
             }
             if (unlockedWeapons.includes('fanBullet') && fanEvent) {
@@ -2969,10 +2989,8 @@ function update() {
             if (unlockedWeapons.includes('explosion') && explosionEvent) {
                 explosionEvent = this.time.addEvent({ delay: 1000, callback: triggerExplosions, callbackScope: this, loop: true });
             }
-            // Восстанавливаем таймер спавна врагов
             enemySpawnEvent = this.time.addEvent({ delay: enemySpawnDelay, callback: spawnEnemy, callbackScope: this, loop: true });
 
-            // Восстанавливаем таймер уничтожения щита, если он был
             if (remainingShieldTime !== null && shields && typeof shields.getChildren === 'function') {
                 const activeShields = shields.getChildren().filter(shield => shield.active);
                 if (activeShields.length > 0) {
@@ -2989,13 +3007,11 @@ function update() {
             }
         }
 
-        // Массив с общим количеством убийств для каждого уровня (до уровня 20)
         const levelUpKills = [0, 10, 20, 35, 50, 70, 90, 115, 140, 170, 200, 235, 270, 310, 350, 395, 440, 490, 540, 595, 655];
-        // Проверяем, достиг ли игрок необходимого количества убийств для следующего уровня
         if (playerLevel < levelUpKills.length && killCount >= levelUpKills[playerLevel]) {
             playerLevel++;
-            scoreText.setText(`Score: ${killCount * 10}`); // Обновляем только счёт
-            levelText.setText(`Level: ${playerLevel}`); // Обновляем уровень
+            scoreText.setText(`Score: ${killCount * 10}`);
+            levelText.setText(`Level: ${playerLevel}`);
             showLevelUpMenu.call(this);
         }
 
