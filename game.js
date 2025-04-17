@@ -150,40 +150,88 @@ function showPopupMessage(message, duration = 2000) {
 
 // Функция для отображения окна разблокировки персонажа
 function showUnlockWindow(characterIndex, cost) {
-    const overlay = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.8)
+    const overlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.8)
         .setOrigin(0.5)
         .setDepth(200)
         .setScrollFactor(0);
 
-    const window = this.add.rectangle(400, 300, 400, 250, 0x333333)
+    const windowWidth = 400;
+    const windowHeight = 300; // Увеличим высоту для кнопок
+    const windowX = this.cameras.main.width / 2;
+    const windowY = this.cameras.main.height / 2;
+
+    const window = this.add.rectangle(windowX, windowY, windowWidth, windowHeight, 0x333333)
         .setOrigin(0.5)
         .setDepth(201)
         .setScrollFactor(0);
 
-    const message = this.add.text(400, 230, `Unlock for crystals: ${cost}/${crystalCount}`, {
+    const message = this.add.text(windowX, windowY - windowHeight / 2 + 40, `Unlock for crystals: ${cost}/${crystalCount}`, {
         fontSize: '24px',
         color: '#ffffff',
         align: 'center'
     }).setOrigin(0.5).setDepth(202).setScrollFactor(0);
 
-    const buyButton = this.add.text(300, 300, 'Buy 100 Crystals', {
+    let buttonY = windowY - 30; // Начальная позиция Y для кнопок
+    const buttonSpacing = 50; // Расстояние между кнопками
+
+    let unlockButton = null;
+    if (crystalCount >= cost) {
+        unlockButton = this.add.text(windowX, buttonY, `Unlock (${cost} Crystals)`, {
+            fontSize: '20px',
+            color: '#00ff00',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202).setInteractive().setScrollFactor(0);
+        buttonY += buttonSpacing;
+
+        unlockButton.on('pointerdown', () => {
+            crystalCount -= cost;
+            crystalCountText.setText(`${crystalCount}`); // Обновляем текст кристаллов в HUD
+            unlockedCharacters[characterIndex] = true;
+            saveProgress();
+
+            // Закрываем окно
+            overlay.destroy();
+            window.destroy();
+            message.destroy();
+            if(unlockButton) unlockButton.destroy();
+            buyButton.destroy();
+            adButton.destroy();
+            closeButton.destroy();
+
+            // Обновляем отображение персонажей в меню
+            // Вместо перезапуска сцены, просто обновим визуал меню персонажей
+            characterImages.forEach((item, i) => {
+                if (item.lockIcon && unlockedCharacters[i]) {
+                    item.lockIcon.destroy();
+                    item.lockIcon = null;
+                }
+            });
+            // Можно добавить визуальное обновление рамки, если нужно
+            // updateCharacterSelection(); // Вызов этой функции может потребовать рефакторинга
+        });
+    }
+
+    const buyButton = this.add.text(windowX, buttonY, 'Buy 100 Crystals', {
+        fontSize: '20px',
+        color: '#00ff00',
+        align: 'center'
+    }).setOrigin(0.5).setDepth(202).setInteractive().setScrollFactor(0);
+    buttonY += buttonSpacing;
+
+    const adButton = this.add.text(windowX, buttonY, 'Watch Ad (+10 Crystals)', {
         fontSize: '20px',
         color: '#00ff00',
         align: 'center'
     }).setOrigin(0.5).setDepth(202).setInteractive().setScrollFactor(0);
 
-    const adButton = this.add.text(500, 300, 'Watch Ad (+10 Crystals)', {
-        fontSize: '20px',
-        color: '#00ff00',
-        align: 'center'
-    }).setOrigin(0.5).setDepth(202).setInteractive().setScrollFactor(0);
-
-    const closeButton = this.add.text(500, 350, 'X', {
+    // Позиционируем кнопку закрытия в правом верхнем углу окна
+    const closeButton = this.add.text(windowX + windowWidth / 2 - 20, windowY - windowHeight / 2 + 20, 'X', {
         fontSize: '24px',
         color: '#ff0000',
         align: 'center'
     }).setOrigin(0.5).setDepth(202).setInteractive().setScrollFactor(0);
 
+    // --- Логика для кнопок покупки и рекламы --- 
     buyButton.on('pointerdown', () => {
         if (typeof window.Android !== 'undefined') {
             window.Android.purchaseItem('100 Crystals'); // Вызов покупки в Android
@@ -191,12 +239,17 @@ function showUnlockWindow(characterIndex, cost) {
             console.log('Purchase simulation: 100 Crystals');
             crystalCount += 100;
             crystalCountText.setText(`${crystalCount}`);
-            if (crystalCount >= cost) {
-                unlockedCharacters[characterIndex] = true;
-                saveProgress();
-                this.scene.restart();
-                showCharacterMenu.call(this);
-            }
+            message.setText(`Unlock for crystals: ${cost}/${crystalCount}`); // Обновляем текст в окне
+            // Перезапускаем окно для обновления кнопки Unlock
+            closeWindow();
+            showUnlockWindow.call(this, characterIndex, cost);
+            // --- Старая логика перезапуска --- 
+            // if (crystalCount >= cost) {
+            //     unlockedCharacters[characterIndex] = true;
+            //     saveProgress();
+            //     this.scene.restart();
+            //     showCharacterMenu.call(this);
+            // }
         }
     });
 
@@ -207,37 +260,56 @@ function showUnlockWindow(characterIndex, cost) {
             console.log('Ad simulation: +10 Crystals');
             crystalCount += 10;
             crystalCountText.setText(`${crystalCount}`);
-            if (crystalCount >= cost) {
-                unlockedCharacters[characterIndex] = true;
-                saveProgress();
-                this.scene.restart();
-                showCharacterMenu.call(this);
-            }
+            message.setText(`Unlock for crystals: ${cost}/${crystalCount}`); // Обновляем текст в окне
+             // Перезапускаем окно для обновления кнопки Unlock
+            closeWindow();
+            showUnlockWindow.call(this, characterIndex, cost);
+            // --- Старая логика перезапуска --- 
+            // if (crystalCount >= cost) {
+            //     unlockedCharacters[characterIndex] = true;
+            //     saveProgress();
+            //     this.scene.restart();
+            //     showCharacterMenu.call(this);
+            // }
         }
     });
 
-    closeButton.on('pointerdown', () => {
+    // Функция для закрытия окна (используется при закрытии и после покупки/рекламы)
+    const closeWindow = () => {
         overlay.destroy();
         window.destroy();
         message.destroy();
+        if(unlockButton) unlockButton.destroy();
         buyButton.destroy();
         adButton.destroy();
         closeButton.destroy();
-    });
+    }
+
+    closeButton.on('pointerdown', closeWindow);
 
     // Проверка после покупки/рекламы (вызывается из Android)
+    // Оставляем эту логику без изменений, так как она может быть важна для Android интеграции
     window.checkUnlock = function() {
         if (crystalCount >= cost) {
             unlockedCharacters[characterIndex] = true;
             saveProgress();
-            overlay.destroy();
-            window.destroy();
-            message.destroy();
-            buyButton.destroy();
-            adButton.destroy();
-            closeButton.destroy();
-            this.scene.restart();
-            showCharacterMenu.call(this);
+            closeWindow(); // Просто закрываем окно
+            // Обновляем иконки замков в меню персонажей
+            characterImages.forEach((item, i) => {
+                if (item.lockIcon && unlockedCharacters[i]) {
+                    item.lockIcon.destroy();
+                    item.lockIcon = null;
+                }
+            });
+            // --- Старая логика --- 
+            // overlay.destroy();
+            // window.destroy();
+            // message.destroy();
+            // buyButton.destroy();
+            // adButton.destroy();
+            // closeButton.destroy();
+            // this.scene.restart();
+            // showCharacterMenu.call(this);
         }
     }.bind(this);
 }
@@ -910,6 +982,20 @@ function selectLocation(location) {
 function initializeGameObjects() {
     this.time.removeAllEvents();
 
+    // Сбрасываем уровни всех оружий до начальных значений ПЕРЕД инициализацией
+    weaponLevels = {
+        bullet: 1,
+        fanBullet: 1,
+        orbBullet: 1,
+        missile: 1,
+        mine: 1,
+        defenderOrb: 1,
+        shield: 1,
+        lightsaber: 1,
+        plasmaOrb: 1,
+        explosion: 1
+    };
+
     // Сбрасываем счётчики воскрешений
     resurrectionsAvailable = 1;
     secondResurrectionUsed = false;
@@ -1010,20 +1096,6 @@ function initializeGameObjects() {
     gameOver = false;
     hasBossSpawned = false;
     spawnedEnemiesCount = 0;
-
-    // Сбрасываем уровни всех оружий до начальных значений
-    weaponLevels = {
-        bullet: 1,
-        fanBullet: 1,
-        orbBullet: 1,
-        missile: 1,
-        mine: 1,
-        defenderOrb: 1,
-        shield: 1,
-        lightsaber: 1,
-        plasmaOrb: 1,
-        explosion: 1
-    };
 
     playerHealth = 10;
     maxHealth = 10;
@@ -1150,7 +1222,8 @@ function initializeGameObjects() {
         const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3); // Каждые 3 уровня оружия уменьшаем задержку
         bulletDelay *= Math.pow(0.8, reductionSteps); // Уменьшаем задержку на 20% каждые 3 уровня
         bulletDelay = Math.max(bulletDelay, 100); // Минимальная задержка 100 мс
-        this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
+        // Сохраняем таймер для возможного изменения задержки
+        this.bulletTimer = this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
         console.log("Добавлен таймер для bullet с задержкой:", bulletDelay);
     }
     if (unlockedWeapons.includes('fanBullet')) {
@@ -1192,6 +1265,22 @@ function initializeGameObjects() {
 
     // Сохраняем таймер спавна врагов
     enemySpawnEvent = this.time.addEvent({ delay: enemySpawnDelay, callback: spawnEnemy, callbackScope: this, loop: true });
+
+    // Таймер для постепенного увеличения сложности (уменьшения задержки спавна)
+    this.difficultyTimer = this.time.addEvent({
+        delay: 10000, // Каждые 10 секунд
+        callback: function() {
+            if (enemySpawnDelay > 500) { // Минимальная задержка 500мс
+                enemySpawnDelay -= 100;
+                if (enemySpawnEvent) { // Обновляем задержку существующего таймера
+                    enemySpawnEvent.delay = enemySpawnDelay;
+                }
+                console.log("Уменьшена задержка спавна врагов до:", enemySpawnDelay);
+            }
+        },
+        callbackScope: this,
+        loop: true
+    });
 
     const savedPendingPart = localStorage.getItem('pendingPart');
     if (savedPendingPart) {
@@ -1715,11 +1804,23 @@ function collectPart(player, part) {
 
 function shootBullet() {
     if (!menuActive && !isPaused && !gameOver && levelUpOptions.length === 0) {
-        const bullet = bullets.create(player.x, player.y, 'bullet');
+        // Получаем пулю из пула, сразу указывая текстуру
+        const bullet = bullets.get(player.x, player.y, 'bullet');
+        if (!bullet) return; // Если пул пуст или достиг максимума
+
+        // Активируем и настраиваем пулю
+        bullet.setActive(true).setVisible(true);
+        bullet.body.enable = true; // Включаем физическое тело
+        bullet.setCollideWorldBounds(false); // Пули могут вылетать за пределы мира (будут деактивированы в update)
+
         bullet.damage = weaponLevels.bullet;
         let angle = player.rotation;
         if (playerDirection === 'left') angle = Math.PI - angle;
+
+        // Устанавливаем ротацию спрайта пули (БЫЛО СЛУЧАЙНО УДАЛЕНО)
         bullet.setRotation(angle);
+
+        // Настраиваем скорость пули
         this.physics.velocityFromRotation(angle, 300, bullet.body.velocity);
     }
 }
@@ -1761,7 +1862,9 @@ function shootMissile() {
             const missile = missiles.create(player.x + (i * 10 - (numMissiles - 1) * 5), player.y, 'missile');
             missile.damage = weaponLevels.missile;
             missile.speed = 200;
-            missile.setRotation(player.rotation);
+            missile.setRotation(player.rotation); // Начальное направление
+            missile.targetEnemy = null; // Цель еще не найдена
+            missile.nextTargetUpdateTime = 0; // Обновить цель при первом update
         }
     }
 }
@@ -1900,7 +2003,14 @@ function hitEnemy(weapon, enemy) {
         const isPlasmaOrb = weapon.texture.key === 'plasmaOrb';
 
         if (!isDefenderOrb && !isLightsaber && !isPlasmaOrb) {
-            weapon.destroy();
+            // Если это обычная пуля, возвращаем ее в пул
+            if (weapon.texture.key === 'bullet' && bullets.contains(weapon)) {
+                bullets.killAndHide(weapon);
+                weapon.body.enable = false;
+            } else {
+                // Для других типов оружия пока оставляем destroy
+                weapon.destroy();
+            }
         } else if (isPlasmaOrb) {
             if (!weapon.hasHit) {
                 weapon.hasHit = true;
@@ -1946,11 +2056,14 @@ function hitEnemy(weapon, enemy) {
             }, this);
         }
 
-        if (weapon.texture.key === 'mine') {
+        // Если это мина, создаем взрыв и возвращаем мину в пул (если мины будут пулиться)
+        // Пока мины не пулятся, оставляем destroy
+        if (weapon.texture.key === 'mine' /* && mines.contains(weapon) */) {
             const explosion = explosions.create(weapon.x, weapon.y, 'explosion1');
             explosion.play('explode');
             explosion.on('animationcomplete', () => explosion.destroy());
-            weapon.destroy();
+            // mines.killAndHide(weapon); weapon.body.enable = false;
+            weapon.destroy(); // Пока мины не пулятся
         }
     }
 }
@@ -2127,7 +2240,7 @@ function resurrectPlayer() {
             const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3); // Каждые 3 уровня оружия уменьшаем задержку
             bulletDelay *= Math.pow(0.8, reductionSteps); // Уменьшаем задержку на 20% каждые 3 уровня
             bulletDelay = Math.max(bulletDelay, 100); // Минимальная задержка 100 мс
-            this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
+            this.bulletTimer = this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
         }
         // Восстанавливаем таймер спавна врагов
         enemySpawnEvent = this.time.addEvent({ delay: enemySpawnDelay, callback: spawnEnemy, callbackScope: this, loop: true });
@@ -2469,7 +2582,7 @@ function showLevelUpMenu() {
         else if (weapon === 'missile') {
             weaponName = 'Homing Missiles';
             icon = 'missile';
-            text = '+1 DAMAGE, +10% speed';
+            text = '+1 DAMAGE';
         }
         else if (weapon === 'mine') {
             weaponName = 'Mines';
@@ -2607,7 +2720,7 @@ function applyLevelUpChoice() {
             const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3);
             bulletDelay *= Math.pow(0.8, reductionSteps);
             bulletDelay = Math.max(bulletDelay, 100);
-            this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
+            this.bulletTimer = this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
         }
         if (unlockedWeapons.includes('fanBullet') && fanEvent) {
             fanEvent = this.time.addEvent({ delay: 2000, callback: shootFanBullets, callbackScope: this, loop: true });
@@ -2662,7 +2775,7 @@ function applyLevelUpChoice() {
             const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3);
             bulletDelay *= Math.pow(0.8, reductionSteps);
             bulletDelay = Math.max(bulletDelay, 100);
-            this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
+            this.bulletTimer = this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
         }
         if (choice.weapon === 'fanBullet') {
             fanEvent = this.time.addEvent({ delay: 2000, callback: shootFanBullets, callbackScope: this, loop: true });
@@ -2787,22 +2900,36 @@ function update() {
             if (missiles && typeof missiles.getChildren === 'function') {
                 missiles.getChildren().forEach(missile => {
                     if (missile && missile.active) {
-                        const enemiesList = enemies && typeof enemies.getChildren === 'function' ? enemies.getChildren().filter(enemy => !enemy.isDead) : [];
-                        if (enemiesList.length > 0) {
-                            let closestEnemy = enemiesList[0];
-                            let minDistance = Phaser.Math.Distance.Between(missile.x, missile.y, closestEnemy.x, closestEnemy.y);
-                            enemiesList.forEach(enemy => {
-                                const distance = Phaser.Math.Distance.Between(missile.x, missile.y, enemy.x, enemy.y);
-                                if (distance < minDistance) {
-                                    minDistance = distance;
-                                    closestEnemy = enemy;
-                                }
-                            });
+                        // Обновляем цель раз в ~160мс
+                        const now = this.time.now;
+                        if (now >= missile.nextTargetUpdateTime) {
+                            const enemiesList = enemies && typeof enemies.getChildren === 'function' ? enemies.getChildren().filter(enemy => enemy.active && !enemy.isDead) : [];
+                            if (enemiesList.length > 0) {
+                                let closestEnemy = null;
+                                let minDistance = Infinity;
 
-                            const angle = Phaser.Math.Angle.Between(missile.x, missile.y, closestEnemy.x, closestEnemy.y);
+                                enemiesList.forEach(enemy => {
+                                    const distance = Phaser.Math.Distance.Between(missile.x, missile.y, enemy.x, enemy.y);
+                                    if (distance < minDistance) {
+                                        minDistance = distance;
+                                        closestEnemy = enemy;
+                                    }
+                                });
+                                missile.targetEnemy = closestEnemy; // Сохраняем найденную цель
+                            } else {
+                                missile.targetEnemy = null; // Сбрасываем цель, если врагов нет
+                            }
+                            missile.nextTargetUpdateTime = now + 160; // Время следующего обновления цели
+                        }
+
+                        // Если есть активная цель, летим к ней
+                        if (missile.targetEnemy && missile.targetEnemy.active) {
+                            const angle = Phaser.Math.Angle.Between(missile.x, missile.y, missile.targetEnemy.x, missile.targetEnemy.y);
                             missile.setRotation(angle);
                             this.physics.velocityFromRotation(angle, missile.speed, missile.body.velocity);
                         } else {
+                            // Если цели нет или она неактивна, летим прямо
+                            missile.targetEnemy = null; // Сбрасываем цель
                             this.physics.velocityFromRotation(missile.rotation, missile.speed, missile.body.velocity);
                         }
                     }
@@ -2851,9 +2978,12 @@ function update() {
                         bullet.x < camera.scrollX - buffer ||
                         bullet.x > camera.scrollX + camera.width + buffer ||
                         bullet.y < camera.scrollY - buffer ||
-                        bullet.y > camera.scrollY + camera.height + buffer
+                        bullet.y > camera.scrollY + camera.height + buffer ||
+                        bullet.y > this.physics.world.bounds.height + buffer // Проверка нижней границы мира
                     )) {
-                        bullet.destroy();
+                        // Возвращаем пулю в пул при выходе за границы
+                        bullets.killAndHide(bullet);
+                        bullet.body.enable = false;
                     }
                 });
             }
@@ -2960,7 +3090,7 @@ function update() {
                 const reductionSteps = Math.floor((weaponLevels.bullet - 1) / 3);
                 bulletDelay *= Math.pow(0.8, reductionSteps);
                 bulletDelay = Math.max(bulletDelay, 100);
-                this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
+                this.bulletTimer = this.time.addEvent({ delay: bulletDelay, callback: shootBullet, callbackScope: this, loop: true });
             }
             if (unlockedWeapons.includes('fanBullet') && fanEvent) {
                 fanEvent = this.time.addEvent({ delay: 2000, callback: shootFanBullets, callbackScope: this, loop: true });
