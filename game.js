@@ -2572,7 +2572,12 @@ function showLevelUpMenu() {
         else if (weapon === 'fanBullet') {
             weaponName = 'Fan Bullets';
             icon = 'fanBullet';
-            text = '+1 DAMAGE, +1 projectile';
+            // Текст зависит от того, будет ли достигнут 3й уровень
+            if (weaponLevels.fanBullet === 2) { // Улучшение с 2 до 3
+                text = '+1 DAMAGE, +2 projectiles (total 5)';
+            } else { // Улучшение с 1 до 2 или с 3+ до N
+                text = '+1 DAMAGE';
+            }
         }
         else if (weapon === 'orbBullet') {
             weaponName = 'Orbs';
